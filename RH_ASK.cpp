@@ -660,14 +660,23 @@ bool RH_INTERRUPT_ATTR RH_ASK::recv(uint8_t* buf, uint8_t* len)
     return true;
 }
 
+// Override the pure virtual function from RHGenericDriver
+bool RH_ASK::send(const uint8_t* data, uint8_t len) {
+    return send(data, len, true);  // Default to including headers
+}
+
 // Caution: this may block
-bool RH_ASK::send(const uint8_t* data, uint8_t len)
+bool RH_ASK::send(const uint8_t* data, uint8_t len, bool includeHeaders = true)
 {
     uint8_t i;
     uint16_t index = 0;
     uint16_t crc = 0xffff;
     uint8_t *p = _txBuf + RH_ASK_PREAMBLE_LEN; // start of the message area
-    uint8_t count = len + 3 + RH_ASK_HEADER_LEN; // Added byte count and FCS and headers to get total number of bytes
+    uint8_t count = len + 3; // Added byte count and FCS and headers to get total number of bytes
+
+    if (includeHeaders){
+        count += RH_ASK_HEADER_LEN;
+    }
 
     if (len > RH_ASK_MAX_MESSAGE_LEN)
 	return false;
@@ -683,19 +692,21 @@ bool RH_ASK::send(const uint8_t* data, uint8_t len)
     p[index++] = symbols[count >> 4];
     p[index++] = symbols[count & 0xf];
 
-    // Encode the headers
-    crc = RHcrc_ccitt_update(crc, _txHeaderTo);
-    p[index++] = symbols[_txHeaderTo >> 4];
-    p[index++] = symbols[_txHeaderTo & 0xf];
-    crc = RHcrc_ccitt_update(crc, _txHeaderFrom);
-    p[index++] = symbols[_txHeaderFrom >> 4];
-    p[index++] = symbols[_txHeaderFrom & 0xf];
-    crc = RHcrc_ccitt_update(crc, _txHeaderId);
-    p[index++] = symbols[_txHeaderId >> 4];
-    p[index++] = symbols[_txHeaderId & 0xf];
-    crc = RHcrc_ccitt_update(crc, _txHeaderFlags);
-    p[index++] = symbols[_txHeaderFlags >> 4];
-    p[index++] = symbols[_txHeaderFlags & 0xf];
+    if (includeHeaders){
+        // Encode the headers
+        crc = RHcrc_ccitt_update(crc, _txHeaderTo);
+        p[index++] = symbols[_txHeaderTo >> 4];
+        p[index++] = symbols[_txHeaderTo & 0xf];
+        crc = RHcrc_ccitt_update(crc, _txHeaderFrom);
+        p[index++] = symbols[_txHeaderFrom >> 4];
+        p[index++] = symbols[_txHeaderFrom & 0xf];
+        crc = RHcrc_ccitt_update(crc, _txHeaderId);
+        p[index++] = symbols[_txHeaderId >> 4];
+        p[index++] = symbols[_txHeaderId & 0xf];
+        crc = RHcrc_ccitt_update(crc, _txHeaderFlags);
+        p[index++] = symbols[_txHeaderFlags >> 4];
+        p[index++] = symbols[_txHeaderFlags & 0xf];
+    }
 
     // Encode the message into 6 bit symbols. Each byte is converted into 
     // 2 6-bit symbols, high nybble first, low nybble second

@@ -310,7 +310,17 @@ public:
     /// \param[in] data Array of data to be sent
     /// \param[in] len Number of bytes of data to send (> 0)
     /// \return true if the message length was valid and it was correctly queued for transmit
-    virtual bool    send(const uint8_t* data, uint8_t len);
+    virtual bool    send(const uint8_t* data, uint8_t len) override;
+
+
+    /// Waits until any previous transmit packet is finished being transmitted with waitPacketSent().
+    /// Then loads a message into the transmitter and starts the transmitter. Note that a message length
+    /// of 0 is NOT permitted. 
+    /// \param[in] data Array of data to be sent
+    /// \param[in] len Number of bytes of data to send (> 0)
+    /// \param[in] bool Whether to include or ignire headers in the data package
+    /// \return true if the message length was valid and it was correctly queued for transmit
+    virtual bool    send(const uint8_t* data, uint8_t len, bool includeHeaders);
 
     /// Returns the maximum message length 
     /// available in this Driver.
